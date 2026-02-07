@@ -150,6 +150,130 @@ export const documentUrlConfig = {
   },
 };
 
+/**
+ * SECURITY: Sanitize field name from PDF annotation
+ *
+ * Prevents:
+ * - Script injection via field names
+ * - Control character injection
+ * - Path traversal attempts (../)
+ * - Excessively long field names
+ *
+ * CWE-20: Improper Input Validation
+ * CWE-79: Cross-Site Scripting
+ *
+ * @param name - Raw field name from PDF annotation
+ * @returns Sanitized field name or empty string if invalid
+ */
+function sanitizeFieldName(name: unknown): string {
+  // Handle non-string or missing names
+  if (typeof name !== 'string' || !name) {
+    return '';
+  }
+
+  // Trim whitespace
+  const trimmed = name.trim();
+
+  // Enforce maximum length (prevent memory exhaustion)
+  const MAX_FIELD_NAME_LENGTH = 100;
+  if (trimmed.length > MAX_FIELD_NAME_LENGTH) {
+    console.warn(
+      `[Security] Field name exceeds maximum length (${trimmed.length} > ${MAX_FIELD_NAME_LENGTH}), truncating`
+    );
+  }
+
+  // Allow only alphanumeric, underscores, hyphens (prevent script injection)
+  const sanitized = trimmed
+    .slice(0, MAX_FIELD_NAME_LENGTH)
+    .replace(/[^a-zA-Z0-9_-]/g, '');
+
+  if (sanitized !== trimmed) {
+    console.warn(
+      `[Security] Field name contained invalid characters, sanitized: "${trimmed}" → "${sanitized}"`
+    );
+  }
+
+  return sanitized || 'signature-field'; // Fallback if all chars removed
+}
+
+/**
+ * SECURITY: Validate and sanitize PDF rect coordinates
+ *
+ * Prevents:
+ * - Integer overflow from extremely large coordinates
+ * - Negative dimensions (malformed PDF)
+ * - Non-numeric values (type confusion)
+ * - Rendering errors from invalid coordinates
+ *
+ * CWE-20: Improper Input Validation
+ * CWE-190: Integer Overflow
+ *
+ * @param rect - Raw rect array from PDF annotation
+ * @returns Validated rect tuple or null if invalid
+ */
+function validateRect(rect: unknown): [number, number, number, number] | null {
+  // Validate array structure
+  if (!Array.isArray(rect) || rect.length !== 4) {
+    console.error('[Security] Invalid rect: not an array of 4 elements');
+    return null;
+  }
+
+  // Convert to numbers
+  const nums = rect.map(Number);
+
+  // Check for NaN
+  if (nums.some(isNaN)) {
+    console.error('[Security] Invalid rect: contains non-numeric values');
+    return null;
+  }
+
+  // Validate coordinate bounds (prevent integer overflow and extreme values)
+  const MAX_COORD = 100000; // Reasonable max for PDF coordinates (70 inches at 1440 DPI)
+  if (nums.some(n => Math.abs(n) > MAX_COORD)) {
+    console.error(
+      `[Security] Invalid rect: coordinates exceed maximum (${MAX_COORD}): [${nums.join(', ')}]`
+    );
+    return null;
+  }
+
+  // Validate dimensions are positive
+  const width = nums[2] - nums[0];
+  const height = nums[3] - nums[1];
+
+  if (width <= 0 || height <= 0) {
+    console.error(
+      `[Security] Invalid rect: zero or negative dimensions (width=${width}, height=${height})`
+    );
+    return null;
+  }
+
+  // Validate reasonable size (prevent rendering issues)
+  const MIN_DIMENSION = 10; // Minimum 10 PDF units (~3mm)
+  const MAX_DIMENSION = 10000; // Maximum dimension
+
+  if (width < MIN_DIMENSION || height < MIN_DIMENSION) {
+    console.error(
+      `[Security] Invalid rect: dimensions too small (min=${MIN_DIMENSION}): width=${width}, height=${height}`
+    );
+    return null;
+  }
+
+  if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+    console.error(
+      `[Security] Invalid rect: dimensions too large (max=${MAX_DIMENSION}): width=${width}, height=${height}`
+    );
+    return null;
+  }
+
+  return nums as [number, number, number, number];
+}
+
+/**
+ * Extract and validate signature fields from PDF document
+ *
+ * SECURITY: Validates all annotation data before creating SignatureField objects
+ * to prevent injection attacks and rendering errors from malicious PDFs
+ */
 export async function extractSignatureFields(
   pdfDocument: PDFDocumentProxy
 ): Promise<SignatureField[]> {
@@ -164,17 +288,30 @@ export async function extractSignatureFields(
     );
 
     signatureFields.forEach((ann: any, idx: number) => {
+      // SECURITY FIX: Validate annotation data before use
+      const validatedRect = validateRect(ann.rect);
+
+      if (!validatedRect) {
+        console.error(
+          `[Security] Skipping signature field on page ${i}, index ${idx}: invalid rect`
+        );
+        return; // Skip this malformed field
+      }
+
+      const sanitizedFieldName = sanitizeFieldName(ann.fieldName);
+      const fallbackName = `signature-${i}-${idx}`;
+
       allFields.push({
         id: `sig-${i}-${idx}`,
         pageIndex: i - 1,
-        fieldName: ann.fieldName || `signature-${i}-${idx}`,
+        fieldName: sanitizedFieldName || fallbackName,
         boundingBox: {
-          x: ann.rect[0],
-          y: ann.rect[1],
-          width: ann.rect[2] - ann.rect[0],
-          height: ann.rect[3] - ann.rect[1],
+          x: validatedRect[0],
+          y: validatedRect[1],
+          width: validatedRect[2] - validatedRect[0],
+          height: validatedRect[3] - validatedRect[1],
         },
-        required: ann.required ?? true,
+        required: typeof ann.required === 'boolean' ? ann.required : true,
         signedBy: null,
         signedAt: null,
       });
