@@ -70,6 +70,7 @@ export const SignatureTyped: React.FC<SignatureTypedProps> = ({
   defaultName = '',
   signatureContext,
   defaultSignatureIntent = 'I approve this document',
+  collectDeviceInfo = false,
 }) => {
   const [text, setText] = useState(defaultName);
   const [selectedFont, setSelectedFont] = useState(SIGNATURE_FONTS[0].value);
@@ -105,7 +106,8 @@ export const SignatureTyped: React.FC<SignatureTypedProps> = ({
             const signatureData = await createCFRCompliantSignature(
               { type: 'typed', data: dataUrl },
               signatureContext,
-              defaultSignatureIntent
+              defaultSignatureIntent,
+              collectDeviceInfo // GDPR: Only collect if explicitly opted-in
             );
             onComplete(signatureData);
           } catch (error) {
@@ -119,7 +121,8 @@ export const SignatureTyped: React.FC<SignatureTypedProps> = ({
             type: 'typed',
             data: dataUrl,
             timestamp: new Date().toISOString(),
-            userAgent: navigator.userAgent,
+            // GDPR: Only collect userAgent if explicitly opted-in
+            userAgent: collectDeviceInfo ? navigator.userAgent : undefined,
             // Required CFR fields with placeholder values
             signerName: 'Not Provided',
             signerId: 'not-provided',

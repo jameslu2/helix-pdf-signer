@@ -121,6 +121,11 @@ export interface PDFSignerProps {
 
   // Optional: Override default signature intent
   defaultSignatureIntent?: string; // Default: "I approve this document"
+
+  // GDPR/CCPA Compliance: Opt-in for device info collection
+  // Set to true to collect userAgent and deviceInfo (browser, platform, screen resolution)
+  // Default: false (compliant with GDPR - requires explicit consent)
+  collectDeviceInfo?: boolean;
 }
 
 export interface SignatureDialogProps {
@@ -130,6 +135,7 @@ export interface SignatureDialogProps {
   onCancel: () => void;
   signatureContext?: PDFSignerProps['signatureContext'];
   defaultSignatureIntent?: string;
+  collectDeviceInfo?: boolean;
 }
 
 export interface SignatureCanvasProps {
@@ -139,6 +145,7 @@ export interface SignatureCanvasProps {
   height?: number;
   signatureContext?: PDFSignerProps['signatureContext'];
   defaultSignatureIntent?: string;
+  collectDeviceInfo?: boolean;
 }
 
 export interface SignatureTypedProps {
@@ -147,6 +154,7 @@ export interface SignatureTypedProps {
   defaultName?: string;
   signatureContext?: PDFSignerProps['signatureContext'];
   defaultSignatureIntent?: string;
+  collectDeviceInfo?: boolean;
 }
 
 export interface SignaturePreviewProps {

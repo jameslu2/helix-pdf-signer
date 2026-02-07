@@ -257,6 +257,17 @@ export async function generateSignatureHash(
 /**
  * Helper to create CFR Part 11 compliant signature data
  * Validates required fields and generates hashes
+ *
+ * GDPR/CCPA COMPLIANCE:
+ * - collectDeviceInfo parameter controls collection of userAgent and deviceInfo
+ * - Default: false (GDPR-compliant, requires explicit user consent)
+ * - When false: userAgent and deviceInfo are undefined (not collected)
+ * - When true: Browser metadata collected (platform, browser, screen resolution)
+ *
+ * @param baseData - Signature type and data URL
+ * @param context - Required CFR Part 11 context (signer, session, document)
+ * @param signatureIntent - Meaning of the signature (default: "I approve this document")
+ * @param collectDeviceInfo - Opt-in flag for device metadata collection (default: false)
  */
 export async function createCFRCompliantSignature(
   baseData: {
@@ -271,7 +282,8 @@ export async function createCFRCompliantSignature(
     authMethod: string;
     ipAddress?: string;
   },
-  signatureIntent: string = 'I approve this document'
+  signatureIntent: string = 'I approve this document',
+  collectDeviceInfo: boolean = false
 ): Promise<import('../types').SignatureData> {
   // Validate required fields
   if (!context.signerName) throw new Error('signerName is required for CFR Part 11 compliance');
@@ -281,11 +293,14 @@ export async function createCFRCompliantSignature(
 
   // Create base signature data
   const timestamp = new Date().toISOString();
+
+  // GDPR/CCPA COMPLIANCE: Only collect device info if explicitly opted-in
   const partialData = {
     type: baseData.type,
     data: baseData.data,
     timestamp,
-    userAgent: navigator.userAgent,
+    // Only collect userAgent if consent given
+    userAgent: collectDeviceInfo ? navigator.userAgent : undefined,
     signerName: context.signerName,
     signerId: context.signerId,
     signerIntent: signatureIntent,
@@ -294,12 +309,13 @@ export async function createCFRCompliantSignature(
     sessionId: context.sessionId,
     ipAddress: context.ipAddress,
     signatureVersion: '1.0.0', // Library version
-    deviceInfo: {
+    // Only collect device metadata if consent given
+    deviceInfo: collectDeviceInfo ? {
       platform: navigator.platform,
       browser: navigator.userAgent,
       isMobile: /Mobile|Android|iPhone|iPad/.test(navigator.userAgent),
       screenResolution: `${window.screen.width}x${window.screen.height}`,
-    },
+    } : undefined,
     signatureHash: '', // Will be computed
   };
 

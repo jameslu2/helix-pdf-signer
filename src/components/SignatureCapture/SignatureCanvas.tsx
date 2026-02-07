@@ -10,6 +10,7 @@ export const SignatureCanvas: React.FC<SignatureCanvasProps> = ({
   height = 200,
   signatureContext,
   defaultSignatureIntent = 'I approve this document',
+  collectDeviceInfo = false,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [signaturePad, setSignaturePad] = useState<SignaturePad | null>(null);
@@ -51,7 +52,8 @@ export const SignatureCanvas: React.FC<SignatureCanvasProps> = ({
           const signatureData = await createCFRCompliantSignature(
             { type: 'drawn', data: dataUrl },
             signatureContext,
-            defaultSignatureIntent
+            defaultSignatureIntent,
+            collectDeviceInfo // GDPR: Only collect if explicitly opted-in
           );
           onComplete(signatureData);
         } catch (error) {
@@ -65,7 +67,8 @@ export const SignatureCanvas: React.FC<SignatureCanvasProps> = ({
           type: 'drawn',
           data: dataUrl,
           timestamp: new Date().toISOString(),
-          userAgent: navigator.userAgent,
+          // GDPR: Only collect userAgent if explicitly opted-in
+          userAgent: collectDeviceInfo ? navigator.userAgent : undefined,
           // Required CFR fields with placeholder values
           signerName: 'Not Provided',
           signerId: 'not-provided',

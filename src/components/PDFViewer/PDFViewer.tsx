@@ -22,6 +22,7 @@ export const PDFViewer = forwardRef<PDFSignerRef, PDFSignerProps>((props, ref) =
     initialPage = 1,
     signatureContext,
     defaultSignatureIntent,
+    collectDeviceInfo = false,
   } = props;
 
   const [pageNumber, setPageNumber] = useState(initialPage);
@@ -197,6 +198,7 @@ export const PDFViewer = forwardRef<PDFSignerRef, PDFSignerProps>((props, ref) =
         onCancel={closeDialog}
         signatureContext={signatureContext}
         defaultSignatureIntent={defaultSignatureIntent}
+        collectDeviceInfo={collectDeviceInfo}
       />
     </div>
   );

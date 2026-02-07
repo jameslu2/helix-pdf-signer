@@ -11,6 +11,7 @@ export const SignatureDialog: React.FC<SignatureDialogProps> = ({
   onCancel,
   signatureContext,
   defaultSignatureIntent,
+  collectDeviceInfo,
 }) => {
   const [mode, setMode] = useState<'draw' | 'type'>('draw');
   const [preview, setPreview] = useState<SignatureData | null>(null);
@@ -77,6 +78,7 @@ export const SignatureDialog: React.FC<SignatureDialogProps> = ({
                   onCancel={handleCancel}
                   signatureContext={signatureContext}
                   defaultSignatureIntent={defaultSignatureIntent}
+                  collectDeviceInfo={collectDeviceInfo}
                 />
               )}
               {mode === 'type' && (
@@ -85,6 +87,7 @@ export const SignatureDialog: React.FC<SignatureDialogProps> = ({
                   onCancel={handleCancel}
                   signatureContext={signatureContext}
                   defaultSignatureIntent={defaultSignatureIntent}
+                  collectDeviceInfo={collectDeviceInfo}
                 />
               )}
             </div>

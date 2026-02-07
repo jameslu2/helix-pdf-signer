@@ -44,6 +44,10 @@ export const PDFViewerV2 = forwardRef<PDFSignerRef, PDFViewerV2Props>((props, re
         onSignatureStatusChange={onSignatureStatusChange}
         signatureContext={signatureContext}
         defaultSignatureIntent="I approve this document"
+        // GDPR/CCPA COMPLIANCE: Opt-in for device info collection
+        // Set to true only after obtaining explicit user consent
+        // Default: false (GDPR-compliant)
+        collectDeviceInfo={true} // Set based on user consent
         onSignatureApplied={(data) => {
           console.log('Signature captured:', {
             type: data.type,
@@ -52,6 +56,8 @@ export const PDFViewerV2 = forwardRef<PDFSignerRef, PDFViewerV2Props>((props, re
             signerId: data.signerId,
             signatureHash: data.signatureHash,
             documentHash: data.documentHash,
+            userAgent: data.userAgent, // Only present if collectDeviceInfo=true
+            deviceInfo: data.deviceInfo, // Only present if collectDeviceInfo=true
           });
         }}
         onError={(error) => {
