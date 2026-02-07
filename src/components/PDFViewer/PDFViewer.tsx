@@ -1,4 +1,4 @@
-import React, { forwardRef, useImperativeHandle, useState, useEffect } from 'react';
+import React, { forwardRef, useImperativeHandle, useState, useEffect, useMemo } from 'react';
 import { Document } from 'react-pdf';
 import { PDFSignerRef, PDFSignerProps, SignatureField, SignatureData } from '../../types';
 import { usePDFDocument } from '../../hooks/usePDFDocument';
@@ -41,7 +41,14 @@ export const PDFViewer = forwardRef<PDFSignerRef, PDFSignerProps>((props, ref) =
     hasSignature,
   } = useSignatureCapture();
 
-  const signedFieldIds = new Set(signatures.keys());
+  // PERFORMANCE FIX: Memoize signedFieldIds to prevent unnecessary recreations
+  // Only recreate Set when signatures Map changes
+  // Prevents useSignatureStatus from recomputing on every render
+  const signedFieldIds = useMemo(
+    () => new Set(signatures.keys()),
+    [signatures]
+  );
+
   const { currentIndex, allSigned, nextSignature, previousSignature } = useSignatureStatus(
     signatureFields,
     signedFieldIds
