@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, forwardRef } from 'react';
-import { PDFSigner, PDFSignerRef } from '@helix/pdf-signer';
+import { PDFSigner, PDFSignerRef, PDFErrorBoundary } from '@helix/pdf-signer';
 import '@helix/pdf-signer/dist/styles.css';
 
 /**
@@ -31,26 +31,34 @@ export const PDFViewerV2 = forwardRef<PDFSignerRef, PDFViewerV2Props>((props, re
   const { documentUrl, onSignatureStatusChange, signatureContext } = props;
 
   return (
-    <PDFSigner
-      ref={ref}
-      documentUrl={documentUrl}
-      onSignatureStatusChange={onSignatureStatusChange}
-      signatureContext={signatureContext}
-      defaultSignatureIntent="I approve this document"
-      onSignatureApplied={(data) => {
-        console.log('Signature captured:', {
-          type: data.type,
-          timestamp: data.timestamp,
-          signerName: data.signerName,
-          signerId: data.signerId,
-          signatureHash: data.signatureHash,
-          documentHash: data.documentHash,
-        });
+    <PDFErrorBoundary
+      onError={(error, errorInfo) => {
+        // Report error to monitoring service (e.g., Sentry, DataDog)
+        console.error('PDF Viewer Error:', error, errorInfo);
+        // reportToMonitoring(error, errorInfo);
       }}
-      onError={(error) => {
-        console.error('PDF Signer error:', error);
-      }}
-    />
+    >
+      <PDFSigner
+        ref={ref}
+        documentUrl={documentUrl}
+        onSignatureStatusChange={onSignatureStatusChange}
+        signatureContext={signatureContext}
+        defaultSignatureIntent="I approve this document"
+        onSignatureApplied={(data) => {
+          console.log('Signature captured:', {
+            type: data.type,
+            timestamp: data.timestamp,
+            signerName: data.signerName,
+            signerId: data.signerId,
+            signatureHash: data.signatureHash,
+            documentHash: data.documentHash,
+          });
+        }}
+        onError={(error) => {
+          console.error('PDF Signer error:', error);
+        }}
+      />
+    </PDFErrorBoundary>
   );
 });
 

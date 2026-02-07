@@ -1,4 +1,5 @@
 export { PDFViewer as PDFSigner } from './components/PDFViewer/PDFViewer';
+export { PDFErrorBoundary } from './components/PDFViewer/PDFErrorBoundary';
 export { SignatureDialog } from './components/SignatureCapture/SignatureDialog';
 export { SignatureCanvas } from './components/SignatureCapture/SignatureCanvas';
 export { SignatureTyped } from './components/SignatureCapture/SignatureTyped';
