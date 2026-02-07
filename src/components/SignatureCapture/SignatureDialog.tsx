@@ -9,6 +9,8 @@ export const SignatureDialog: React.FC<SignatureDialogProps> = ({
   field,
   onComplete,
   onCancel,
+  signatureContext,
+  defaultSignatureIntent,
 }) => {
   const [mode, setMode] = useState<'draw' | 'type'>('draw');
   const [preview, setPreview] = useState<SignatureData | null>(null);
@@ -70,10 +72,20 @@ export const SignatureDialog: React.FC<SignatureDialogProps> = ({
 
             <div className="signature-dialog-content">
               {mode === 'draw' && (
-                <SignatureCanvas onComplete={handleComplete} onCancel={handleCancel} />
+                <SignatureCanvas
+                  onComplete={handleComplete}
+                  onCancel={handleCancel}
+                  signatureContext={signatureContext}
+                  defaultSignatureIntent={defaultSignatureIntent}
+                />
               )}
               {mode === 'type' && (
-                <SignatureTyped onComplete={handleComplete} onCancel={handleCancel} />
+                <SignatureTyped
+                  onComplete={handleComplete}
+                  onCancel={handleCancel}
+                  signatureContext={signatureContext}
+                  defaultSignatureIntent={defaultSignatureIntent}
+                />
               )}
             </div>
           </>

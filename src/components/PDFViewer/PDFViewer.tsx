@@ -20,6 +20,8 @@ export const PDFViewer = forwardRef<PDFSignerRef, PDFSignerProps>((props, ref) =
     enableZoom = true,
     enableNavigation = true,
     initialPage = 1,
+    signatureContext,
+    defaultSignatureIntent,
   } = props;
 
   const [pageNumber, setPageNumber] = useState(initialPage);
@@ -175,6 +177,8 @@ export const PDFViewer = forwardRef<PDFSignerRef, PDFSignerProps>((props, ref) =
         field={currentField}
         onComplete={handleSignatureComplete}
         onCancel={closeDialog}
+        signatureContext={signatureContext}
+        defaultSignatureIntent={defaultSignatureIntent}
       />
     </div>
   );

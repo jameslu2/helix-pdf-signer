@@ -1,12 +1,15 @@
 import React, { useRef, useEffect, useState } from 'react';
 import SignaturePad from 'signature_pad';
 import { SignatureCanvasProps } from '../../types';
+import { createCFRCompliantSignature } from '../../utils/signature-utils';
 
 export const SignatureCanvas: React.FC<SignatureCanvasProps> = ({
   onComplete,
   onCancel,
   width = 500,
   height = 200,
+  signatureContext,
+  defaultSignatureIntent = 'I approve this document',
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [signaturePad, setSignaturePad] = useState<SignaturePad | null>(null);
@@ -38,15 +41,42 @@ export const SignatureCanvas: React.FC<SignatureCanvasProps> = ({
     setIsEmpty(true);
   };
 
-  const handleApply = () => {
+  const handleApply = async () => {
     if (signaturePad && !signaturePad.isEmpty()) {
       const dataUrl = signaturePad.toDataURL('image/png');
-      onComplete({
-        type: 'drawn',
-        data: dataUrl,
-        timestamp: new Date().toISOString(),
-        userAgent: navigator.userAgent,
-      });
+
+      // CFR Part 11 COMPLIANCE: Create signature with required fields
+      if (signatureContext) {
+        try {
+          const signatureData = await createCFRCompliantSignature(
+            { type: 'drawn', data: dataUrl },
+            signatureContext,
+            defaultSignatureIntent
+          );
+          onComplete(signatureData);
+        } catch (error) {
+          console.error('Failed to create CFR-compliant signature:', error);
+          alert('Failed to create signature. Please ensure all required fields are provided.');
+        }
+      } else {
+        // Fallback for non-CFR environments (development/testing)
+        console.warn('[CFR Part 11] signatureContext not provided - using minimal signature data');
+        onComplete({
+          type: 'drawn',
+          data: dataUrl,
+          timestamp: new Date().toISOString(),
+          userAgent: navigator.userAgent,
+          // Required CFR fields with placeholder values
+          signerName: 'Not Provided',
+          signerId: 'not-provided',
+          signerIntent: defaultSignatureIntent,
+          authMethod: 'unknown',
+          signatureHash: 'not-computed',
+          documentHash: 'not-provided',
+          sessionId: 'not-provided',
+          signatureVersion: '1.0.0',
+        });
+      }
     }
   };
 

@@ -16,21 +16,35 @@ import '@helix/pdf-signer/dist/styles.css';
 interface PDFViewerV2Props {
   documentUrl: string;
   onSignatureStatusChange?: (allSigned: boolean, currentIndex: number) => void;
+  // CFR Part 11 Required: Signature context from authentication system
+  signatureContext?: {
+    signerName: string;
+    signerId: string;
+    sessionId: string;
+    documentHash: string;
+    authMethod: string;
+    ipAddress?: string;
+  };
 }
 
 export const PDFViewerV2 = forwardRef<PDFSignerRef, PDFViewerV2Props>((props, ref) => {
-  const { documentUrl, onSignatureStatusChange } = props;
+  const { documentUrl, onSignatureStatusChange, signatureContext } = props;
 
   return (
     <PDFSigner
       ref={ref}
       documentUrl={documentUrl}
       onSignatureStatusChange={onSignatureStatusChange}
+      signatureContext={signatureContext}
+      defaultSignatureIntent="I approve this document"
       onSignatureApplied={(data) => {
         console.log('Signature captured:', {
           type: data.type,
           timestamp: data.timestamp,
-          userAgent: data.userAgent,
+          signerName: data.signerName,
+          signerId: data.signerId,
+          signatureHash: data.signatureHash,
+          documentHash: data.documentHash,
         });
       }}
       onError={(error) => {
@@ -50,6 +64,7 @@ export const PreviewDocumentContainer: React.FC = () => {
   const [documentUrl, setDocumentUrl] = useState('');
   const [isAllSigned, setIsAllSigned] = useState(false);
   const [currentSignature, setCurrentSignature] = useState(0);
+  const [signatureContext, setSignatureContext] = useState<PDFViewerV2Props['signatureContext']>();
 
   useEffect(() => {
     // BEFORE (with Nutrient):
@@ -58,9 +73,19 @@ export const PreviewDocumentContainer: React.FC = () => {
     // });
 
     // AFTER (with @helix/pdf-signer):
-    // Option A: Backend returns S3 signed URL
+    // Option A: Backend returns S3 signed URL + document hash
     getConsentDocumentUrl(requestID, email, language).then(response => {
       setDocumentUrl(response.documentUrl);
+
+      // CFR Part 11 COMPLIANCE: Get context from authentication system
+      setSignatureContext({
+        signerName: response.signerName,        // From Okta JWT
+        signerId: response.signerId,            // From Okta JWT
+        sessionId: response.sessionId,          // From Redux session store
+        documentHash: response.documentHash,    // From backend (SHA-256 of PDF)
+        authMethod: 'okta_2fa',                // Authentication method
+        ipAddress: response.ipAddress,          // From backend (server-side capture)
+      });
     });
 
     // Option B: Backend proxy endpoint
@@ -92,6 +117,7 @@ export const PreviewDocumentContainer: React.FC = () => {
       <PDFViewerV2
         ref={pdfViewerRef}
         documentUrl={documentUrl}
+        signatureContext={signatureContext}
         onSignatureStatusChange={(allSigned, currentIdx) => {
           setIsAllSigned(allSigned);
           setCurrentSignature(currentIdx);

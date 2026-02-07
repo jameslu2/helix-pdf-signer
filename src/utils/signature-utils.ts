@@ -200,3 +200,95 @@ export function dataURLToBase64(dataUrl: string): string {
 export function generateSignatureId(): string {
   return `sig-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
+
+/**
+ * Generates a SHA-256 hash of signature data for CFR Part 11 compliance
+ * This ensures signature integrity and non-repudiation
+ *
+ * @param data - Signature data to hash (excluding the hash field itself)
+ * @returns Promise resolving to hex-encoded SHA-256 hash
+ */
+export async function generateSignatureHash(
+  data: Omit<import('../types').SignatureData, 'signatureHash'>
+): Promise<string> {
+  // Create deterministic string representation
+  const hashInput = JSON.stringify({
+    type: data.type,
+    data: data.data,
+    timestamp: data.timestamp,
+    signerName: data.signerName,
+    signerId: data.signerId,
+    signerIntent: data.signerIntent,
+    documentHash: data.documentHash,
+  });
+
+  // Use Web Crypto API for SHA-256
+  const encoder = new TextEncoder();
+  const dataBuffer = encoder.encode(hashInput);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+
+  // Convert to hex string
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+  return hashHex;
+}
+
+/**
+ * Helper to create CFR Part 11 compliant signature data
+ * Validates required fields and generates hashes
+ */
+export async function createCFRCompliantSignature(
+  baseData: {
+    type: 'drawn' | 'typed';
+    data: string;
+  },
+  context: {
+    signerName: string;
+    signerId: string;
+    sessionId: string;
+    documentHash: string;
+    authMethod: string;
+    ipAddress?: string;
+  },
+  signatureIntent: string = 'I approve this document'
+): Promise<import('../types').SignatureData> {
+  // Validate required fields
+  if (!context.signerName) throw new Error('signerName is required for CFR Part 11 compliance');
+  if (!context.signerId) throw new Error('signerId is required for CFR Part 11 compliance');
+  if (!context.documentHash) throw new Error('documentHash is required for CFR Part 11 compliance');
+  if (!signatureIntent) throw new Error('signatureIntent is required for CFR Part 11 compliance');
+
+  // Create base signature data
+  const timestamp = new Date().toISOString();
+  const partialData = {
+    type: baseData.type,
+    data: baseData.data,
+    timestamp,
+    userAgent: navigator.userAgent,
+    signerName: context.signerName,
+    signerId: context.signerId,
+    signerIntent: signatureIntent,
+    authMethod: context.authMethod,
+    documentHash: context.documentHash,
+    sessionId: context.sessionId,
+    ipAddress: context.ipAddress,
+    signatureVersion: '1.0.0', // Library version
+    deviceInfo: {
+      platform: navigator.platform,
+      browser: navigator.userAgent,
+      isMobile: /Mobile|Android|iPhone|iPad/.test(navigator.userAgent),
+      screenResolution: `${window.screen.width}x${window.screen.height}`,
+    },
+    signatureHash: '', // Will be computed
+  };
+
+  // Generate signature hash
+  const hash = await generateSignatureHash(partialData);
+
+  // Return complete signature data
+  return {
+    ...partialData,
+    signatureHash: hash,
+  };
+}

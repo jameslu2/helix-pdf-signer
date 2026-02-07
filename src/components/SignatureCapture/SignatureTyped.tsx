@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { SignatureTypedProps } from '../../types';
+import { createCFRCompliantSignature } from '../../utils/signature-utils';
 
 const SIGNATURE_FONTS = [
   { name: 'Cursive', value: 'cursive' },
@@ -11,11 +12,13 @@ export const SignatureTyped: React.FC<SignatureTypedProps> = ({
   onComplete,
   onCancel,
   defaultName = '',
+  signatureContext,
+  defaultSignatureIntent = 'I approve this document',
 }) => {
   const [text, setText] = useState(defaultName);
   const [selectedFont, setSelectedFont] = useState(SIGNATURE_FONTS[0].value);
 
-  const handleApply = () => {
+  const handleApply = async () => {
     if (text.trim()) {
       // Create a canvas to render the typed signature
       const canvas = document.createElement('canvas');
@@ -34,12 +37,39 @@ export const SignatureTyped: React.FC<SignatureTypedProps> = ({
         ctx.fillText(text, canvas.width / 2, canvas.height / 2);
 
         const dataUrl = canvas.toDataURL('image/png');
-        onComplete({
-          type: 'typed',
-          data: dataUrl,
-          timestamp: new Date().toISOString(),
-          userAgent: navigator.userAgent,
-        });
+
+        // CFR Part 11 COMPLIANCE: Create signature with required fields
+        if (signatureContext) {
+          try {
+            const signatureData = await createCFRCompliantSignature(
+              { type: 'typed', data: dataUrl },
+              signatureContext,
+              defaultSignatureIntent
+            );
+            onComplete(signatureData);
+          } catch (error) {
+            console.error('Failed to create CFR-compliant signature:', error);
+            alert('Failed to create signature. Please ensure all required fields are provided.');
+          }
+        } else {
+          // Fallback for non-CFR environments (development/testing)
+          console.warn('[CFR Part 11] signatureContext not provided - using minimal signature data');
+          onComplete({
+            type: 'typed',
+            data: dataUrl,
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent,
+            // Required CFR fields with placeholder values
+            signerName: 'Not Provided',
+            signerId: 'not-provided',
+            signerIntent: defaultSignatureIntent,
+            authMethod: 'unknown',
+            signatureHash: 'not-computed',
+            documentHash: 'not-provided',
+            sessionId: 'not-provided',
+            signatureVersion: '1.0.0',
+          });
+        }
       }
     }
   };
