@@ -1,6 +1,6 @@
 import React, { forwardRef, useImperativeHandle, useState, useEffect } from 'react';
 import { Document } from 'react-pdf';
-import { PDFSignerRef, PDFSignerProps, SignatureField } from '../../types';
+import { PDFSignerRef, PDFSignerProps, SignatureField, SignatureData } from '../../types';
 import { usePDFDocument } from '../../hooks/usePDFDocument';
 import { useSignatureFields } from '../../hooks/useSignatureFields';
 import { useSignatureCapture } from '../../hooks/useSignatureCapture';
@@ -62,11 +62,13 @@ export const PDFViewer = forwardRef<PDFSignerRef, PDFSignerProps>((props, ref) =
     }
   };
 
-  const handleSignatureComplete = (data: any) => {
+  // SECURITY FIX: Use proper SignatureData type instead of `any`
+  // Ensures type safety and catches signature data structure issues at compile time
+  const handleSignatureComplete = (data: SignatureData) => {
     if (currentField) {
       applySignature(currentField.id, data);
       updateField(currentField.id, {
-        signedBy: 'user',
+        signedBy: data.signerName || 'user', // Use actual signer name from CFR data
         signedAt: data.timestamp,
       });
       onSignatureApplied?.(data);
@@ -130,7 +132,7 @@ export const PDFViewer = forwardRef<PDFSignerRef, PDFSignerProps>((props, ref) =
               },
             ];
           })
-          .filter((entry): entry is [string, { data: any; field: SignatureField; pageHeight: number }] =>
+          .filter((entry): entry is [string, { data: SignatureData; field: SignatureField; pageHeight: number }] =>
             entry !== null
           )
       );
