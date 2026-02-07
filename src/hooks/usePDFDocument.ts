@@ -1,9 +1,14 @@
 import { useState, useEffect } from 'react';
 import { pdfjs, PDFDocumentProxy } from 'pdfjs-dist';
 
-// Configure PDF.js worker
+// SECURITY FIX: Bundle PDF.js worker locally instead of loading from CDN
+// This prevents supply chain attacks via compromised CDN
+// Using Vite's ?url import to get the bundled worker path
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+
+// Configure PDF.js worker with local bundle
 if (typeof window !== 'undefined') {
-  pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+  pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 }
 
 export function usePDFDocument(documentUrl: string) {
