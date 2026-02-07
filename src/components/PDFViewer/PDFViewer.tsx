@@ -104,19 +104,35 @@ export const PDFViewer = forwardRef<PDFSignerRef, PDFSignerProps>((props, ref) =
       return signatureFields.length;
     },
     getSignatures: () => {
+      // SECURITY FIX: Remove non-null assertion and properly handle missing fields
+      // Filter out signatures for fields that no longer exist (defensive programming)
       const signatureMap = new Map(
-        Array.from(signatures.entries()).map(([fieldId, data]) => {
-          const field = signatureFields.find((f) => f.id === fieldId);
-          const dimensions = field ? pageDimensions.get(field.pageIndex + 1) : null;
-          return [
-            fieldId,
-            {
-              data,
-              field: field!,
-              pageHeight: dimensions?.height || 792,
-            },
-          ];
-        })
+        Array.from(signatures.entries())
+          .map(([fieldId, data]) => {
+            const field = signatureFields.find((f) => f.id === fieldId);
+
+            // If field doesn't exist (should never happen, but be defensive)
+            if (!field) {
+              console.error(
+                `[Security] Signature exists for unknown field: ${fieldId}. ` +
+                'This may indicate data corruption or tampering.'
+              );
+              return null; // Will be filtered out below
+            }
+
+            const dimensions = pageDimensions.get(field.pageIndex + 1);
+            return [
+              fieldId,
+              {
+                data,
+                field,
+                pageHeight: dimensions?.height || 792, // Default to US Letter height
+              },
+            ];
+          })
+          .filter((entry): entry is [string, { data: any; field: SignatureField; pageHeight: number }] =>
+            entry !== null
+          )
       );
       return createPSPDFKitInstantJSON(signatureMap);
     },
