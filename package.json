@@ -1,0 +1,65 @@
+{
+  "name": "@helix/pdf-signer",
+  "version": "1.0.0",
+  "description": "Lightweight React library for PDF viewing and signature capture with CFR Part 11 compliance",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./dist/styles.css": "./dist/styles.css"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "test": "jest",
+    "test:e2e": "playwright test",
+    "test:perf": "jest --testMatch='**/*.perf.test.ts'",
+    "lint": "eslint src --ext ts,tsx",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "pdf",
+    "signature",
+    "react",
+    "cfr-part-11",
+    "pspdfkit",
+    "document-signing"
+  ],
+  "author": "Helix",
+  "license": "MIT",
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "dependencies": {
+    "pdfjs-dist": "^4.0.379",
+    "react-pdf": "^7.7.0",
+    "signature_pad": "^4.1.7"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.1.5",
+    "@testing-library/react": "^14.1.2",
+    "@types/jest": "^29.5.11",
+    "@types/node": "^20.10.6",
+    "@types/react": "^18.2.46",
+    "@types/react-dom": "^18.2.18",
+    "@typescript-eslint/eslint-plugin": "^6.17.0",
+    "@typescript-eslint/parser": "^6.17.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "eslint": "^8.56.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "playwright": "^1.40.1",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.10",
+    "vite-plugin-dts": "^3.7.0"
+  }
+}
