@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SignatureTypedProps } from '../../types';
 import { createCFRCompliantSignature } from '../../utils/signature-utils';
 
@@ -18,10 +18,41 @@ const MAX_SIGNATURE_LENGTH = 100; // Reasonable max for human names
 const ALLOWED_CHARS = /^[a-zA-Z\s\-'.]+$/; // Letters, spaces, hyphens, apostrophes, periods
 const MIN_SIGNATURE_LENGTH = 2; // At least 2 characters
 
+/**
+ * COMPATIBILITY: Signature font configuration
+ *
+ * Font Availability Strategy:
+ * 1. Generic cursive fallback (always available)
+ * 2. System fonts with good cross-platform support
+ * 3. Web font fallbacks via Google Fonts CDN (optional)
+ *
+ * To use web fonts, add to your HTML <head>:
+ * <link rel="preconnect" href="https://fonts.googleapis.com">
+ * <link href="https://fonts.googleapis.com/css2?family=Dancing+Script&family=Great+Vibes&display=swap" rel="stylesheet">
+ *
+ * Font Stack Design:
+ * - Primary: Specific font (may not be available)
+ * - Secondary: System font alternative
+ * - Fallback: Generic 'cursive' (always available)
+ */
 const SIGNATURE_FONTS = [
-  { name: 'Cursive', value: 'cursive' },
-  { name: 'Dancing Script', value: '"Dancing Script", cursive' },
-  { name: 'Brush Script', value: '"Brush Script MT", cursive' },
+  {
+    name: 'Cursive',
+    value: 'cursive',
+    description: 'Generic cursive (always available)',
+  },
+  {
+    name: 'Dancing Script',
+    value: '"Dancing Script", "Brush Script MT", "Apple Chancery", cursive',
+    description: 'Elegant script font with system fallbacks',
+    webFontUrl: 'https://fonts.googleapis.com/css2?family=Dancing+Script&display=swap',
+  },
+  {
+    name: 'Great Vibes',
+    value: '"Great Vibes", "Lucida Handwriting", "Brush Script MT", cursive',
+    description: 'Flowing signature style with system fallbacks',
+    webFontUrl: 'https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap',
+  },
 ];
 
 /**
@@ -75,6 +106,43 @@ export const SignatureTyped: React.FC<SignatureTypedProps> = ({
   const [text, setText] = useState(defaultName);
   const [selectedFont, setSelectedFont] = useState(SIGNATURE_FONTS[0].value);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [fontsLoaded, setFontsLoaded] = useState(false);
+
+  // Optionally load web fonts dynamically
+  useEffect(() => {
+    // Check if fonts are already loaded (via HTML <link> tag)
+    // This is the preferred method for production
+    const existingLinks = document.querySelectorAll('link[href*="fonts.googleapis.com"]');
+    if (existingLinks.length > 0) {
+      setFontsLoaded(true);
+      return;
+    }
+
+    // Alternative: dynamically load fonts (not recommended for production)
+    // Better to include in HTML <head> for faster loading
+    // Uncomment below to enable dynamic loading:
+
+    /*
+    const fontLinks = SIGNATURE_FONTS
+      .filter(font => font.webFontUrl)
+      .map(font => font.webFontUrl!);
+
+    fontLinks.forEach(url => {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = url;
+      document.head.appendChild(link);
+    });
+
+    // Wait for fonts to load
+    document.fonts.ready.then(() => {
+      setFontsLoaded(true);
+    });
+    */
+
+    // For now, assume system fonts are available
+    setFontsLoaded(true);
+  }, []);
 
   const handleApply = async () => {
     // SECURITY FIX: Validate and sanitize input before processing
@@ -195,11 +263,27 @@ export const SignatureTyped: React.FC<SignatureTypedProps> = ({
               selectedFont === font.value ? 'selected' : ''
             }`}
             style={{ fontFamily: font.value }}
+            title={font.description}
+            aria-label={`${font.name} font - ${font.description}`}
           >
             {font.name}
           </button>
         ))}
       </div>
+
+      {!fontsLoaded && (
+        <div
+          className="signature-font-loading"
+          style={{
+            fontSize: '0.875rem',
+            color: '#666',
+            padding: '0.5rem',
+            textAlign: 'center',
+          }}
+        >
+          Loading fonts...
+        </div>
+      )}
 
       <div className="signature-typed-preview" style={{ fontFamily: selectedFont }}>
         {text || 'Preview'}
