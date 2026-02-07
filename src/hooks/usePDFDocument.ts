@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { pdfjs, PDFDocumentProxy } from 'pdfjs-dist';
+import { validateDocumentUrl } from '../utils/pdf-utils';
 
 // SECURITY FIX: Bundle PDF.js worker locally instead of loading from CDN
 // This prevents supply chain attacks via compromised CDN
@@ -29,6 +30,15 @@ export function usePDFDocument(documentUrl: string) {
 
     const loadDocument = async () => {
       try {
+        // SECURITY FIX: Validate document URL before loading
+        // Prevents SSRF, file system access, and malicious protocols
+        if (!validateDocumentUrl(documentUrl)) {
+          throw new Error(
+            'Invalid or unauthorized document URL. ' +
+            'Only HTTPS, blob, and data URLs from whitelisted domains are allowed.'
+          );
+        }
+
         const loadingTask = pdfjs.getDocument(documentUrl);
         const pdf = await loadingTask.promise;
 

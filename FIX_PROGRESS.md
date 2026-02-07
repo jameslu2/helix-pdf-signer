@@ -2,7 +2,7 @@
 
 **Started**: 2026-02-07
 **Target**: Production-ready in 4 days
-**Current Status**: 1/10 Critical Issues Fixed ✅
+**Current Status**: 2/10 Critical Issues Fixed ✅✅
 
 ---
 
@@ -14,22 +14,24 @@
 - **File**: `src/hooks/usePDFDocument.ts:6`
 - **Time**: 30 minutes
 - **Status**: ✅ COMPLETED
-- **Commit**: Next commit
+- **Commit**: `410506d`
 - **Priority**: 🔥 FIX FIRST
 - **Fix**: Replaced CDN URL with local Vite bundle using `?url` import
 - **Security Impact**: Eliminated supply chain attack vector
+
+#### [CRIT-2] Add Document URL Validation ✅
+- **Files**: `src/utils/pdf-utils.ts`, `src/hooks/usePDFDocument.ts:27`
+- **Time**: 2 hours
+- **Status**: ✅ COMPLETED
+- **Commit**: Next commit
+- **Priority**: 🔥 FIX SECOND
+- **Fix**: Added comprehensive URL validation with protocol/domain whitelisting
+- **Security Impact**: Prevents SSRF, file system access, malicious protocols
 
 ### 🔧 In Progress
 - None
 
 ### ⏳ Todo
-
-#### [CRIT-2] Add Document URL Validation
-- **Files**: `src/utils/pdf-utils.ts`, `src/hooks/usePDFDocument.ts:27`
-- **Time**: 2 hours
-- **Status**: ⏳ Not Started
-- **Commit**: TBD
-- **Priority**: 🔥 FIX SECOND
 
 #### [CRIT-3] Add Data URL Validation
 - **Files**: `src/utils/signature-utils.ts`, `src/components/SignatureCapture/SignaturePreview.tsx:15`
@@ -118,17 +120,17 @@
 
 | Phase | Total Issues | Fixed | Remaining | % Complete |
 |-------|--------------|-------|-----------|------------|
-| Critical | 10 | 1 | 9 | 10% ✅ |
+| Critical | 10 | 2 | 8 | 20% ✅✅ |
 | High | 5 | 0 | 5 | 0% |
-| **Total** | **15** | **1** | **14** | **7%** |
+| **Total** | **15** | **2** | **13** | **13%** |
 
 ---
 
 ## Time Tracking
 
 - **Estimated Total**: 23 hours
-- **Time Spent**: 0.5 hours
-- **Remaining**: 22.5 hours
+- **Time Spent**: 2.5 hours
+- **Remaining**: 20.5 hours
 - **Target Completion**: Day 4
 
 ---
@@ -140,7 +142,8 @@
 - ✅ `c3ea7d1` - docs: Add fix progress tracker
 
 ### Security Fixes
-- ✅ Next commit - [CRIT-1] Bundle PDF.js worker locally
+- ✅ `410506d` - [CRIT-1] Bundle PDF.js worker locally
+- ✅ Next commit - [CRIT-2] Add document URL validation
 
 ---
 

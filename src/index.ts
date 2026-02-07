@@ -8,5 +8,13 @@ export * from './hooks/usePDFDocument';
 export * from './hooks/useSignatureFields';
 export * from './hooks/useSignatureCapture';
 export * from './hooks/useSignatureStatus';
-export * from './utils/pdf-utils';
+// Export PDF utilities including security validation
+export {
+  extractSignatureFields,
+  getPageDimensions,
+  convertBBoxToPSPDFKit,
+  validateDocumentUrl,
+  documentUrlConfig,
+} from './utils/pdf-utils';
+
 export * from './utils/signature-utils';
