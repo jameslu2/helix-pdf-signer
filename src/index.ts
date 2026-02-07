@@ -17,4 +17,12 @@ export {
   documentUrlConfig,
 } from './utils/pdf-utils';
 
-export * from './utils/signature-utils';
+// Export signature utilities including security validation
+export {
+  createPSPDFKitAnnotation,
+  createPSPDFKitInstantJSON,
+  dataURLToBase64,
+  generateSignatureId,
+  validateImageDataUrl,
+  sanitizeImageDataUrl,
+} from './utils/signature-utils';

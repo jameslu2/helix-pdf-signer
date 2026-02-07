@@ -1,5 +1,99 @@
 import { PSPDFKitAnnotation, PSPDFKitInstantJSON, SignatureData, SignatureField } from '../types';
 
+// SECURITY: Allowed image types for signature data URLs
+// Only raster formats to prevent SVG-based XSS
+const ALLOWED_IMAGE_TYPES = ['png', 'jpeg', 'jpg', 'gif', 'webp'] as const;
+
+// SECURITY: Maximum data URL size (5MB)
+// Prevents memory exhaustion DoS attacks
+const MAX_DATA_URL_SIZE = 5 * 1024 * 1024; // 5MB
+
+/**
+ * SECURITY FIX: Validates image data URLs before rendering
+ *
+ * Prevents:
+ * - SVG-based XSS attacks (data:image/svg+xml with JavaScript)
+ * - Memory exhaustion DoS (extremely large data URLs)
+ * - Malformed data URL parsing bugs
+ * - Non-image content injection
+ *
+ * CWE-79: Improper Neutralization of Input During Web Page Generation (XSS)
+ * CWE-20: Improper Input Validation
+ *
+ * @param dataUrl - The data URL to validate
+ * @returns true if data URL is safe to render, false otherwise
+ */
+export function validateImageDataUrl(dataUrl: string): boolean {
+  // Reject empty or non-string data URLs
+  if (!dataUrl || typeof dataUrl !== 'string') {
+    console.error('[Security] Image data URL validation failed: Empty or invalid data URL');
+    return false;
+  }
+
+  // Check size to prevent DoS via memory exhaustion
+  if (dataUrl.length > MAX_DATA_URL_SIZE) {
+    console.error(
+      `[Security] Image data URL validation failed: Exceeds maximum size ` +
+      `(${dataUrl.length} bytes > ${MAX_DATA_URL_SIZE} bytes)`
+    );
+    return false;
+  }
+
+  // Validate data URL format with strict regex
+  // Format: data:image/<type>;base64,<base64-data>
+  // Only allows base64 encoding (not percent encoding which could hide attacks)
+  const DATA_URL_REGEX = new RegExp(
+    `^data:image/(${ALLOWED_IMAGE_TYPES.join('|')});base64,[A-Za-z0-9+/]+=*$`
+  );
+
+  if (!DATA_URL_REGEX.test(dataUrl)) {
+    console.error(
+      '[Security] Image data URL validation failed: Invalid format or unsupported type. ' +
+      `Allowed types: ${ALLOWED_IMAGE_TYPES.join(', ')}`
+    );
+    return false;
+  }
+
+  // Extract and validate base64 portion
+  const base64Match = dataUrl.match(/^data:image\/[^;]+;base64,(.+)$/);
+  if (!base64Match) {
+    console.error('[Security] Image data URL validation failed: Cannot extract base64 data');
+    return false;
+  }
+
+  const base64Data = base64Match[1];
+
+  // Validate base64 length is reasonable
+  // Base64 encodes 3 bytes as 4 characters, so actual size is ~75% of base64 length
+  const estimatedByteSize = (base64Data.length * 3) / 4;
+  const MAX_IMAGE_SIZE = 2 * 1024 * 1024; // 2MB for actual image data
+
+  if (estimatedByteSize > MAX_IMAGE_SIZE) {
+    console.error(
+      `[Security] Image data URL validation failed: Image size too large ` +
+      `(~${Math.round(estimatedByteSize / 1024)}KB > ${MAX_IMAGE_SIZE / 1024}KB)`
+    );
+    return false;
+  }
+
+  // Additional validation: check for null bytes or suspicious patterns
+  if (base64Data.includes('\0') || base64Data.includes('\x00')) {
+    console.error('[Security] Image data URL validation failed: Contains null bytes');
+    return false;
+  }
+
+  // Data URL passed all security checks
+  return true;
+}
+
+/**
+ * Validates and sanitizes a data URL before use
+ * Returns null if validation fails
+ */
+export function sanitizeImageDataUrl(dataUrl: string): string | null {
+  return validateImageDataUrl(dataUrl) ? dataUrl : null;
+}
+
 export function createPSPDFKitAnnotation(
   signatureData: SignatureData,
   field: SignatureField,
