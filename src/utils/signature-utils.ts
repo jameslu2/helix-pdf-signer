@@ -197,8 +197,28 @@ export function dataURLToBase64(dataUrl: string): string {
   return dataUrl.split(',')[1];
 }
 
+/**
+ * SECURITY FIX: Generate cryptographically secure signature ID
+ *
+ * Prevents:
+ * - Predictable signature IDs that could be guessed by attackers
+ * - Signature ID collisions in high-traffic scenarios
+ * - Replay attacks using predicted IDs
+ *
+ * Uses Web Crypto API's crypto.randomUUID() for:
+ * - Cryptographically secure random number generation (CSPRNG)
+ * - RFC 4122 UUID v4 format (128-bit random value)
+ * - No possibility of collisions in practical scenarios
+ *
+ * CWE-330: Use of Insufficiently Random Values
+ * CWE-338: Use of Cryptographically Weak Pseudo-Random Number Generator
+ *
+ * @returns Unique signature ID in format: sig-{timestamp}-{uuid}
+ */
 export function generateSignatureId(): string {
-  return `sig-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  // Use Web Crypto API for cryptographically secure random IDs
+  // crypto.randomUUID() generates RFC 4122 v4 UUID (128-bit random)
+  return `sig-${Date.now()}-${crypto.randomUUID()}`;
 }
 
 /**
