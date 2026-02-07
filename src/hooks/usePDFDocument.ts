@@ -25,6 +25,8 @@ export function usePDFDocument(documentUrl: string) {
     }
 
     let cancelled = false;
+    let loadedDocument: PDFDocumentProxy | null = null;
+
     setIsLoading(true);
     setError(null);
 
@@ -43,9 +45,13 @@ export function usePDFDocument(documentUrl: string) {
         const pdf = await loadingTask.promise;
 
         if (!cancelled) {
+          loadedDocument = pdf;
           setDocument(pdf);
           setNumPages(pdf.numPages);
           setIsLoading(false);
+        } else {
+          // SECURITY FIX: Clean up document if component unmounted during load
+          pdf.destroy();
         }
       } catch (err) {
         if (!cancelled) {
@@ -59,6 +65,18 @@ export function usePDFDocument(documentUrl: string) {
 
     return () => {
       cancelled = true;
+
+      // SECURITY FIX [CRIT-4]: Properly destroy PDF document to prevent memory leak
+      // This is critical for:
+      // - Memory management: Each PDF can use 10-50MB
+      // - Security: Clears sensitive PDF data from memory
+      // - Resource cleanup: Terminates worker threads
+      // CWE-401: Missing Release of Memory after Effective Lifetime
+      // CWE-772: Missing Release of Resource after Effective Lifetime
+      if (loadedDocument) {
+        loadedDocument.destroy();
+        loadedDocument = null;
+      }
     };
   }, [documentUrl]);
 
